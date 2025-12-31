@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import requests
 import json
 
@@ -7,8 +8,7 @@ import json
 GOOGLE_API_KEY = st.secrets ["GOOGLE_API_KEY"]
 
 # Configure Gemini
-genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('models/gemini-1.5-flash')
+client = genai.Client(api_key=GOOGLE_API_KEY)
 
 # Wine API endpoint (using Sampleapis wine API)
 WINE_API_URL = "https://api.sampleapis.com/wines/reds"
@@ -34,6 +34,48 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<h1 class="main-header">🍷 AI Sommelier Wine Shop</h1>', unsafe_allow_html=True)
+
+# Function to get available models and initialize
+@st.cache_resource
+def initialize_model():
+    try:
+        # List all available models
+        available_models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                available_models.append(m.name)
+        
+        if not available_models:
+            return None, "No models available with your API key"
+        
+        # Try to use the best available model
+        preferred_models = [
+            'models/gemini-1.5-flash-latest',
+            'models/gemini-1.5-flash',
+            'models/gemini-1.5-pro-latest',
+            'models/gemini-1.5-pro',
+            'models/gemini-pro',
+        ]
+        
+        model_to_use = None
+        for preferred in preferred_models:
+            if preferred in available_models:
+                model_to_use = preferred
+                break
+        
+        if not model_to_use:
+            model_to_use = available_models[0]
+        
+        model = genai.GenerativeModel(model_to_use)
+        return model, f"Using model: {model_to_use}"
+        
+    except Exception as e:
+        return None, f"Error initializing: {str(e)}"
+
+model, model_status = initialize_model()
+
+# Show model status in sidebar
+st.sidebar.info(model_status)
 
 # Sidebar for wine preferences
 st.sidebar.header("Your Wine Preferences")
@@ -82,9 +124,13 @@ with tab1:
         guests = st.number_input("Number of guests", min_value=1, max_value=20, value=2)
     
     if st.button("Get Wine Recommendations", type="primary"):
-        with st.spinner("Our AI sommelier is selecting the perfect wines..."):
-            # Build prompt for Gemini
-            prompt = f"""As an expert sommelier, recommend 3 wines for the following:
+        if model is None:
+            st.error("Model not initialized. Please check your API key.")
+            st.info("Get your API key at: https://aistudio.google.com/app/apikey")
+        else:
+            with st.spinner("Our AI sommelier is selecting the perfect wines..."):
+                # Build prompt for Gemini
+                prompt = f"""As an expert sommelier, recommend 3 wines for the following:
 
 Meal Type: {meal_type}
 Dish Description: {meal_description if meal_description else 'Not specified'}
@@ -103,16 +149,16 @@ For each wine recommendation, provide:
 
 Format your response in a clear, conversational way."""
 
-            try:
-                # Call Gemini API
-                response = model.generate_content(prompt)
-                response_text = response.text
-                
-                st.markdown("### 🎯 Sommelier's Recommendations")
-                st.markdown(response_text)
-            except Exception as e:
-                st.error(f"Error getting recommendations: {str(e)}")
-                st.info("Please check your API key and try again.")
+                try:
+                    # Call Gemini API
+                    response = model.generate_content(prompt)
+                    response_text = response.text
+                    
+                    st.markdown("### 🎯 Sommelier's Recommendations")
+                    st.markdown(response_text)
+                except Exception as e:
+                    st.error(f"Error getting recommendations: {str(e)}")
+                    st.info("Please check your API key and internet connection.")
 
 # Tab 2: Browse Wines
 with tab2:
@@ -185,22 +231,26 @@ with tab3:
     
     if st.button("Ask Sommelier", type="primary"):
         if user_question:
-            with st.spinner("Thinking..."):
-                try:
-                    prompt = f"""You are an expert sommelier. Answer this question in a helpful, friendly, and knowledgeable way:
+            if model is None:
+                st.error("Model not initialized. Please check your API key.")
+                st.info("Get your API key at: https://aistudio.google.com/app/apikey")
+            else:
+                with st.spinner("Thinking..."):
+                    try:
+                        prompt = f"""You are an expert sommelier. Answer this question in a helpful, friendly, and knowledgeable way:
 
 {user_question}
 
 Provide practical advice and interesting facts where relevant."""
-                    
-                    response = model.generate_content(prompt)
-                    response_text = response.text
-                    
-                    st.markdown("### 🍷 Sommelier's Answer")
-                    st.markdown(response_text)
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
-                    st.info("Please check your API key and try again.")
+                        
+                        response = model.generate_content(prompt)
+                        response_text = response.text
+                        
+                        st.markdown("### 🍷 Sommelier's Answer")
+                        st.markdown(response_text)
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+                        st.info("Please check your API key and try again.")
         else:
             st.warning("Please enter a question first.")
 
