@@ -5,9 +5,10 @@ import json
 
 # Hardcoded API key (replace with your actual key)
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+
 # Configure Gemini
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Wine API endpoint (using Sampleapis wine API)
 WINE_API_URL = "https://api.sampleapis.com/wines/reds"
