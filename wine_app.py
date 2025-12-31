@@ -1,12 +1,13 @@
 import streamlit as st
-import anthropic
+import google.generativeai as genai
 import requests
 import json
 
 # Hardcoded API key (replace with your actual key)
-ANTHROPIC_API_KEY = st.secrets["ANTHROPIC_API_KEY"]
-# Initialize Anthropic client
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]4
+# Configure Gemini
+genai.configure(api_key=GOOGLE_API_KEY)
+model = genai.GenerativeModel('gemini-pro')
 
 # Wine API endpoint (using Sampleapis wine API)
 WINE_API_URL = "https://api.sampleapis.com/wines/reds"
@@ -81,7 +82,7 @@ with tab1:
     
     if st.button("Get Wine Recommendations", type="primary"):
         with st.spinner("Our AI sommelier is selecting the perfect wines..."):
-            # Build prompt for Claude
+            # Build prompt for Gemini
             prompt = f"""As an expert sommelier, recommend 3 wines for the following:
 
 Meal Type: {meal_type}
@@ -101,19 +102,16 @@ For each wine recommendation, provide:
 
 Format your response in a clear, conversational way."""
 
-            # Call Anthropic API
-            message = client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1000,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            
-            response_text = message.content[0].text
-            
-            st.markdown("### 🎯 Sommelier's Recommendations")
-            st.markdown(response_text)
+            try:
+                # Call Gemini API
+                response = model.generate_content(prompt)
+                response_text = response.text
+                
+                st.markdown("### 🎯 Sommelier's Recommendations")
+                st.markdown(response_text)
+            except Exception as e:
+                st.error(f"Error getting recommendations: {str(e)}")
+                st.info("Please check your API key and try again.")
 
 # Tab 2: Browse Wines
 with tab2:
@@ -187,22 +185,21 @@ with tab3:
     if st.button("Ask Sommelier", type="primary"):
         if user_question:
             with st.spinner("Thinking..."):
-                message = client.messages.create(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=1000,
-                    messages=[
-                        {"role": "user", "content": f"""You are an expert sommelier. Answer this question in a helpful, friendly, and knowledgeable way:
+                try:
+                    prompt = f"""You are an expert sommelier. Answer this question in a helpful, friendly, and knowledgeable way:
 
 {user_question}
 
-Provide practical advice and interesting facts where relevant."""}
-                    ]
-                )
-                
-                response_text = message.content[0].text
-                
-                st.markdown("### 🍷 Sommelier's Answer")
-                st.markdown(response_text)
+Provide practical advice and interesting facts where relevant."""
+                    
+                    response = model.generate_content(prompt)
+                    response_text = response.text
+                    
+                    st.markdown("### 🍷 Sommelier's Answer")
+                    st.markdown(response_text)
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+                    st.info("Please check your API key and try again.")
         else:
             st.warning("Please enter a question first.")
 
@@ -224,7 +221,7 @@ else:
 # Footer
 st.markdown("---")
 st.markdown(
-    "<p style='text-align: center; color: #666;'>🍷 Powered by Claude AI | "
+    "<p style='text-align: center; color: #666;'>🍷 Powered by Google Gemini AI | "
     "Drink Responsibly | Must be 21+ to order</p>",
     unsafe_allow_html=True
 )
