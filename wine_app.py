@@ -4,8 +4,7 @@ import requests
 import json
 
 # Hardcoded API key (replace with your actual key)
-ANTHROPIC_API_KEY = "your-api-key-here"
-
+ANTHROPIC_API_KEY = st.secrets["ANTHROPIC_API_KEY"]
 # Initialize Anthropic client
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
