@@ -4,7 +4,7 @@ import requests
 import json
 
 # Hardcoded API key (replace with your actual key)
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]4
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 # Configure Gemini
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-pro')
