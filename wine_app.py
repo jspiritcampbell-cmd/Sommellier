@@ -139,7 +139,7 @@ with tab2:
             search_term = st.text_input("Search wines", placeholder="Enter wine name...")
         
         # Display wines
-        for wine in wines:
+        for idx, wine in enumerate(wines):
             if search_term.lower() in wine.get('wine', '').lower() or not search_term:
                 with st.container():
                     st.markdown('<div class="wine-card">', unsafe_allow_html=True)
@@ -157,7 +157,7 @@ with tab2:
                             st.write(f"⭐ Rating: {wine['rating'].get('average', 'N/A')}")
                     
                     with col3:
-                        if st.button("Learn More", key=wine.get('id', wine.get('wine'))):
+                        if st.button("Learn More", key=f"wine_btn_{idx}"):
                             st.session_state['selected_wine'] = wine
                     
                     st.markdown('</div>', unsafe_allow_html=True)
